@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentes y subagentes: delegar tareas y trabajar en paralelo con supervisión</title>
+<style>
+
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Montserrat', sans-serif; background: #f0f2f5; color: #333; }
+    .slide { width: 100%; max-width: 1024px; margin: 20px auto; background: #fff; border-radius: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); overflow: hidden; min-height: 500px; display: flex; flex-direction: column; }
+    .slide-header { background: #3d5a96; padding: 18px 30px; display: flex; align-items: center; justify-content: space-between; }
+    .slide-header h2 { color: #fff; font-size: 20px; font-weight: 700; }
+    .slide-header .num { color: rgba(255,255,255,0.6); font-size: 14px; }
+    .slide-body { padding: 30px; flex: 1; }
+    .slide-footer { background: #2e4575; padding: 10px 30px; display: flex; justify-content: space-between; color: rgba(255,255,255,0.7); font-size: 12px; }
+    .portada { min-height: 90vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; position: relative; overflow: hidden; }
+    .portada-bg { position: absolute; inset: 0; background: linear-gradient(135deg, #3d5a96 0%, #e8755c 50%, #d05a7e 100%); z-index: 0; }
+    .portada .franja1 { position: absolute; bottom: 0; left: 0; right: 0; height: 12px; background: #e8755c; z-index: 1; }
+    .portada .franja2 { position: absolute; top: 0; right: 0; width: 25%; height: 8%; background: #d05a7e; z-index: 1; }
+    .portada .franja3 { position: absolute; bottom: 0; left: 0; width: 10%; height: 18%; background: #d05a7e; z-index: 1; }
+    .portada .franja4 { position: absolute; bottom: 0; right: 0; width: 15%; height: 12%; background: #e8755c; z-index: 1; }
+    .portada-content { position: relative; z-index: 2; padding: 40px; }
+    .portada .campus { color: rgba(255,255,255,0.7); font-size: 13px; letter-spacing: 4px; font-weight: 700; margin-bottom: 40px; }
+    .portada h1 { color: #fff; font-size: 48px; font-weight: 900; line-height: 1.2; margin-bottom: 8px; text-shadow: 3px 3px 12px rgba(0,0,0,0.2); }
+    .portada h1 span { display: block; font-size: 32px; font-weight: 600; }
+    .portada .tema-label { color: rgba(255,255,255,0.85); font-size: 18px; margin-top: 50px; }
+    .portada .tema { color: #fff; font-size: 28px; font-weight: 700; margin-top: 8px; }
+    .portada .instituto { color: rgba(255,255,255,0.75); font-size: 15px; margin-top: 50px; }
+    .portada .fecha { color: rgba(255,255,255,0.55); font-size: 13px; margin-top: 10px; }
+    h3 { color: #3d5a96; font-size: 22px; margin-bottom: 20px; }
+    h4 { color: #3d5a96; font-size: 18px; margin-bottom: 12px; }
+    .block { background: #fdf4f0; border-left: 5px solid #e8755c; padding: 18px 20px; border-radius: 0 10px 10px 0; margin: 15px 0; }
+    .block-title { font-weight: 700; color: #e8755c; margin-bottom: 6px; }
+    .block-blue { background: #eff2f8; border-left: 5px solid #3d5a96; }
+    .block-blue .block-title { color: #3d5a96; }
+    .block-pink { background: #fdf0f4; border-left: 5px solid #d05a7e; }
+    .block-pink .block-title { color: #d05a7e; }
+    .block-vino { background: #fdf0f2; border-left: 5px solid #691b31; }
+    .block-vino .block-title { color: #691b31; }
+    ul, ol { padding-left: 22px; line-height: 2; }
+    li { margin-bottom: 4px; }
+    .columns { display: flex; gap: 30px; }
+    .columns > div { flex: 1; }
+    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    th, td { border: 1px solid #ddd; padding: 10px 14px; text-align: left; }
+    th { background: #3d5a96; color: #fff; }
+    tr:nth-child(even) { background: #f8f9fc; }
+    .tag { display: inline-block; background: #3d5a96; color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-right: 6px; }
+    .center { text-align: center; }
+    .final { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; text-align: center; }
+    .final h2 { color: #3d5a96; font-size: 32px; margin-bottom: 20px; }
+    .final p { color: #666; font-size: 18px; }
+    .nav-bar { max-width: 1024px; margin: 10px auto; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .nav-bar button { background: #3d5a96; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 13px; transition: all 0.2s; }
+    .nav-bar button:hover { background: #e8755c; transform: translateY(-2px); }
+    .nav-bar button.activo { background: #d05a7e; }
+    .nav-controls { max-width: 1024px; margin: 10px auto; display: flex; gap: 10px; justify-content: center; }
+    .nav-controls button { background: #3d5a96; color: #fff; border: none; padding: 10px 28px; border-radius: 25px; cursor: pointer; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 15px; transition: all 0.2s; }
+    .nav-controls button:hover { background: #e8755c; transform: scale(1.05); }
+    .counter { max-width: 1024px; margin: 5px auto; text-align: center; font-size: 13px; color: #888; }
+    @media (max-width: 768px) {
+        .portada h1 { font-size: 32px; }
+        .portada h1 span { font-size: 24px; }
+        .portada .tema { font-size: 20px; }
+        .columns { flex-direction: column; }
+        .slide-body { padding: 20px; }
+        .slide-header h2 { font-size: 16px; }
+    }
+
+</style>
+</head>
+<body>
+
+<div class="nav-controls">
+    <button onclick="ant()">&#9664; Anterior</button>
+    <button onclick="sig()">Siguiente &#9654;</button>
+</div>
+<div class="counter" id="counter"></div>
+
+<div id="slides-container"></div>
+
+<script>
+const PORTADA = {
+    "etiqueta": "Tema 4.3 — Unidad 4",
+    "tema": "Agentes y subagentes:<br>delegar y supervisar",
+    "instituto": "Instituto de Capacitación para el Trabajo del Estado de Hidalgo"
+};
+const slides = [
+    {
+        "tipo": "portada"
+    },
+    {
+        "titulo": "Índice",
+        "num": "2 / 32",
+        "body": "<div class=\"columns\"><div><strong style=\"color:#3d5a96;\">1. Entender</strong><br>- Agente<br>- Subagente<br>- Contexto aislado<br><br><strong style=\"color:#3d5a96;\">2. Organizar</strong><br>- División de tareas<br>- Paralelismo<br>- Coordinación</div><div><strong style=\"color:#3d5a96;\">3. Controlar</strong><br>- Riesgos<br>- Conflictos<br>- Supervisión<br><br><strong style=\"color:#3d5a96;\">4. Cerrar</strong><br>- Actividad<br>- Resumen y glosario</div></div>"
+    },
+    {
+        "titulo": "Objetivo de aprendizaje",
+        "num": "3 / 32",
+        "body": "<p style=\"font-size:17px;line-height:1.7;margin-bottom:12px;\">Al terminar podrás <strong>delegar en agentes y subagentes, dividir el trabajo y revisar la integración</strong>.</p><div class=\"block\"><div class=\"block-title\">Lo que sabrás hacer</div><ul style=\"font-size:16px;line-height:2.1;\"><li>Explicar qué es un subagente.</li><li>Dividir una tarea grande en flujos paralelos.</li><li>Evitar conflictos entre agentes.</li><li>Revisar y unir los resultados.</li></ul></div>"
+    },
+    {
+        "titulo": "¿Qué es un agente?",
+        "num": "4 / 32",
+        "body": "<p style=\"font-size:17px;line-height:1.7;margin-bottom:12px;\">Un agente recibe un objetivo, planea y ejecuta con sus herramientas.</p><ul style=\"font-size:16px;line-height:2.1;\"><li>Puede leer y escribir archivos.</li><li>Puede ejecutar comandos y pruebas.</li><li>Trabaja en un contexto determinado.</li><li>Entrega un resultado verificable.</li></ul>"
+    },
+    {
+        "titulo": "¿Qué es un subagente?",
+        "num": "5 / 32",
+        "body": "<p style=\"font-size:17px;line-height:1.7;margin-bottom:12px;\">Un subagente es un <strong>agente auxiliar</strong> al que el principal le encarga una parte del trabajo.</p><ul style=\"font-size:16px;line-height:2.1;\"><li>Tiene su propio contexto.</li><li>Puede trabajar en paralelo.</li><li>Devuelve un resultado al principal.</li><li>Se usa para dividir y especializar.</li></ul>"
+    },
+    {
+        "titulo": "Cuándo usarlos",
+        "num": "6 / 32",
+        "body": "<ul style=\"font-size:16px;line-height:2.1;\"><li>La tarea es grande y se puede dividir.</li><li>Hay partes independientes.</li><li>Se necesita velocidad.</li><li>Cada parte requiere contexto distinto.</li><li>El trabajo es largo y conviene paralelizar.</li></ul>"
+    },
+    {
+        "titulo": "Cómo se dividen",
+        "num": "7 / 32",
+        "body": "<table style=\"font-size:14px;\"><tr><th>Criterio</th><th>Ejemplo</th></tr><tr><td>Por archivo</td><td>Un agente por sección de la página</td></tr><tr><td>Por carpeta</td><td>Uno para el sitio y otro para la app</td></tr><tr><td>Por tipo de tarea</td><td>Uno redacta y otro maqueta</td></tr><tr><td>Por etapa</td><td>Uno investiga y otro implementa</td></tr></table>"
+    },
+    {
+        "titulo": "Contexto aislado",
+        "num": "8 / 32",
+        "body": "<p style=\"font-size:17px;line-height:1.7;margin-bottom:12px;\">Cada subagente ve solo lo que necesita. Eso evita ruido y mejora la calidad.</p><ul style=\"font-size:16px;line-height:2.1;\"><li>No arrastra toda la conversación.</li><li>Recibe instrucciones específicas.</li><li>Puede usar herramientas limitadas.</li><li>Devuelve un resumen al principal.</li></ul>"
+    },
+    {
+        "titulo": "Paralelismo",
+        "num": "9 / 32",
+        "body": "<p style=\"font-size:17px;line-height:1.7;margin-bottom:12px;\">Los flujos corren al mismo tiempo. El tiempo total baja, pero la revisión sigue siendo una.</p><div class=\"columns\"><div><div class=\"block block-blue\"><div class=\"block-title\">Ventaja</div><ul style=\"font-size:16px;line-height:2.1;\"><li>Menos espera.</li><li>Trabajo simultáneo.</li><li>Especialización.</li></ul></div></div><div><div class=\"block\"><div class=\"block-title\">Costo</div><ul style=\"font-size:16px;line-height:2.1;\"><li>Más consumo de cuota.</li><li>Más piezas que revisar.</li><li>Integración necesaria.</li></ul></div></div></div>"
+    },
+    {
+        "titulo": "Coordinación",
+        "num": "10 / 32",
+        "body": "<ol style=\"font-size:16px;line-height:2.1;\"><li>El agente principal define el plan.</li><li>Reparte tareas con instrucciones claras.</li><li>Cada subagente entrega su parte.</li><li>El principal integra y verifica.</li><li>Tú revisas el resultado final.</li></ol>"
+    },
+    {
+        "titulo": "Ejemplo: cierre mensual",
+        "num": "11 / 32",
+        "body": "<div class=\"block block-vino\"><div class=\"block-title\">División</div><ul style=\"font-size:16px;line-height:2.1;\"><li>Subagente 1: ventas por producto.</li><li>Subagente 2: gastos por categoría.</li><li>Subagente 3: conclusiones y resumen ejecutivo.</li><li>Principal: integra y verifica totales.</li></ul></div>"
+    },
+    {
+        "titulo": "Ejemplo: catálogo",
+        "num": "12 / 32",
+        "body": "<div class=\"block block-blue\"><div class=\"block-title\">División</div><ul style=\"font-size:16px;line-height:2.1;\"><li>Subagente 1: fichas de producto.</li><li>Subagente 2: precios y existencias.</li><li>Subagente 3: fotografías y textos.</li><li>Principal: arma la página final.</li></ul></div>"
+    },
+    {
+        "titulo": "Ventajas",
+        "num": "13 / 32",
+        "body": "<ul style=\"font-size:16px;line-height:2.1;\"><li>Velocidad en tareas grandes.</li><li>Mejor foco por parte.</li><li>Posibilidad de comparar enfoques.</li><li>Escalabilidad del trabajo.</li><li>Uso eficiente del contexto.</li></ul>"
+    },
+    {
+        "titulo": "Riesgos",
+        "num": "14 / 32",
+        "body": "<ul style=\"font-size:16px;line-height:2.1;\"><li>Dos agentes tocan el mismo archivo.</li><li>Resultados contradictorios.</li><li>Consumo alto de cuota.</li><li>Pérdida de coherencia.</li><li>Dificultad para revisar.</li></ul>"
+    },
+    {
+        "titulo": "Conflictos de archivos",
+        "num": "15 / 32",
+        "body": "<p style=\"font-size:17px;line-height:1.7;margin-bottom:12px;\">Si dos flujos escriben el mismo archivo, uno sobrescribe al otro.</p><ul style=\"font-size:16px;line-height:2.1;\"><li>Separa por carpeta o por archivo.</li><li>Define quién integra al final.</li><li>Revisa el diff de cada parte.</li><li>No dejes que editen lo mismo.</li></ul>"
+    },
+    {
+        "titulo": "Worktrees",
+        "num": "16 / 32",
+        "body": "<p style=\"font-size:17px;line-height:1.7;margin-bottom:12px;\">Una copia aislada del proyecto permite que cada agente trabaje sin pisar al otro.</p><ul style=\"font-size:16px;line-height:2.1;\"><li>Cada agente en su copia.</li><li>Se comparan resultados.</li><li>Se integra lo mejor.</li><li>Se evita el conflicto directo.</li></ul>"
+    },
+    {
+        "titulo": "Instrucciones para subagentes",
+        "num": "17 / 32",
+        "body": "<ul style=\"font-size:16px;line-height:2.1;\"><li>Objetivo específico.</li><li>Archivos que puede tocar.</li><li>Formato de entrega.</li><li>Qué no debe hacer.</li><li>Cómo comprobar su parte.</li></ul>"
+    },
+    {
+        "titulo": "Revisar resultados",
+        "num": "18 / 32",
+        "body": "<ol style=\"font-size:16px;line-height:2.1;\"><li>Compara cada parte con la instrucción.</li><li>Verifica cifras y nombres.</li><li>Revisa que no se contradigan.</li><li>Comprueba la integración.</li><li>Prueba el resultado completo.</li></ol>"
+    },
+    {
+        "titulo": "Integrar",
+        "num": "19 / 32",
+        "body": "<p style=\"font-size:17px;line-height:1.7;margin-bottom:12px;\">La integración es el momento más delicado: piezas buenas pueden no encajar.</p><ul style=\"font-size:16px;line-height:2.1;\"><li>Usa una estructura común.</li><li>Revisa el formato de cada parte.</li><li>Verifica que no falte nada.</li><li>Prueba el conjunto.</li><li>Documenta qué se integró.</li></ul>"
+    },
+    {
+        "titulo": "Supervisión",
+        "num": "20 / 32",
+        "body": "<table style=\"font-size:14px;\"><tr><th>Nivel</th><th>Qué revisar</th></tr><tr><td>Por subagente</td><td>Que cumpla su parte</td></tr><tr><td>Integración</td><td>Que no haya duplicados</td></tr><tr><td>Resultado final</td><td>Que funcione completo</td></tr><tr><td>Datos</td><td>Que no se expongan</td></tr></table>"
+    },
+    {
+        "titulo": "Permisos",
+        "num": "21 / 32",
+        "body": "<ul style=\"font-size:16px;line-height:2.1;\"><li>Cada subagente con el mínimo necesario.</li><li>Sin acceso a datos que no necesita.</li><li>Modo Manual al empezar.</li><li>Revisar qué herramientas usa.</li><li>Cerrar accesos al terminar.</li></ul>"
+    },
+    {
+        "titulo": "Costos",
+        "num": "22 / 32",
+        "body": "<p style=\"font-size:17px;line-height:1.7;margin-bottom:12px;\">El paralelismo multiplica el consumo.</p><ul style=\"font-size:16px;line-height:2.1;\"><li>Cada flujo consume por su cuenta.</li><li>Divide solo lo que aporta velocidad.</li><li>Revisa el uso después de cada tarea.</li><li>Evita dejar agentes sin supervisión.</li></ul>"
+    },
+    {
+        "titulo": "Cuándo no usarlos",
+        "num": "23 / 32",
+        "body": "<ul style=\"font-size:16px;line-height:2.1;\"><li>La tarea es pequeña.</li><li>Los pasos dependen uno del otro.</li><li>Todo toca el mismo archivo.</li><li>No puedes revisar varias piezas.</li><li>El costo supera el beneficio.</li></ul>"
+    },
+    {
+        "titulo": "Errores comunes",
+        "num": "24 / 32",
+        "body": "<table style=\"font-size:14px;\"><tr><th>Error</th><th>Consecuencia</th><th>Solución</th></tr><tr><td>Dividir mal</td><td>Retrabajo</td><td>Separar por carpeta</td></tr><tr><td>Sin instrucciones</td><td>Resultados distintos</td><td>Definir cada parte</td></tr><tr><td>No integrar</td><td>Piezas sueltas</td><td>Revisar el conjunto</td></tr><tr><td>Sin control de costos</td><td>Cuota agotada</td><td>Medir y ajustar</td></tr><tr><td>Revisar solo al final</td><td>Errores arrastrados</td><td>Revisar por etapa</td></tr></table>"
+    },
+    {
+        "titulo": "Buenas prácticas",
+        "num": "25 / 32",
+        "body": "<ul style=\"font-size:16px;line-height:2.1;\"><li>Un subagente por carpeta.</li><li>Instrucciones cortas y específicas.</li><li>Revisar cada entrega.</li><li>Documentar el plan.</li><li>Medir tiempo y cuota.</li></ul>"
+    },
+    {
+        "titulo": "Actividad",
+        "num": "26 / 32",
+        "body": "<p style=\"font-size:17px;line-height:1.7;margin-bottom:12px;\"><strong>Meta:</strong> dividir una tarea en dos flujos y revisar la integración.</p><ol style=\"font-size:16px;line-height:2.1;\"><li>Elige una tarea que se pueda dividir.</li><li>Escribe el plan y los dos flujos.</li><li>Asigna archivos distintos a cada uno.</li><li>Revisa cada entrega.</li><li>Integra y prueba el resultado.</li></ol><div class=\"block block-blue\"><div class=\"block-title\">Entregable</div>El plan, las dos entregas y la prueba del resultado final.</div>"
+    },
+    {
+        "titulo": "Rúbrica",
+        "num": "27 / 32",
+        "body": "<table style=\"font-size:14px;\"><tr><th>Criterio</th><th>Peso</th><th>Qué se observa</th></tr><tr><td>División</td><td>30%</td><td>Partes independientes</td></tr><tr><td>Instrucciones</td><td>25%</td><td>Claras y específicas</td></tr><tr><td>Integración</td><td>25%</td><td>Sin conflictos</td></tr><tr><td>Revisión</td><td>20%</td><td>Evidencia de pruebas</td></tr></table>"
+    },
+    {
+        "titulo": "Resumen",
+        "num": "28 / 32",
+        "body": "<ul style=\"font-size:17px;line-height:2.1;\"><li>Un subagente hace una parte del trabajo.</li><li>Sirve para tareas grandes y divisibles.</li><li>Cada flujo necesita contexto e instrucciones.</li><li>El conflicto de archivos se evita separando.</li><li>La integración y la revisión son tuyas.</li></ul><div class=\"block center\" style=\"margin-top:15px;\"><div class=\"block-title\">Frase final</div><em>Dividir acelera; integrar exige criterio.</em></div>"
+    },
+    {
+        "titulo": "Autoevaluación",
+        "num": "29 / 32",
+        "body": "<ol style=\"font-size:17px;line-height:2.1;\"><li>¿Qué es un subagente?</li><li>¿Cuándo conviene usarlo?</li><li>¿Cómo evitas conflictos de archivos?</li><li>¿Qué revisas al integrar?</li><li>¿Qué costo tiene el paralelismo?</li></ol>"
+    },
+    {
+        "titulo": "Glosario",
+        "num": "30 / 32",
+        "body": "<table style=\"font-size:14px;\"><tr><th>Término</th><th>Significado</th></tr><tr><td>Agente</td><td>Sistema que ejecuta tareas.</td></tr><tr><td>Subagente</td><td>Agente auxiliar con contexto propio.</td></tr><tr><td>Worktree</td><td>Copia aislada del proyecto.</td></tr><tr><td>Integración</td><td>Unir las partes en un resultado.</td></tr></table>"
+    },
+    {
+        "titulo": "Recursos y consejos",
+        "num": "31 / 32",
+        "body": "<div class=\"block block-blue\"><div class=\"block-title\">Documentación</div><ul style=\"font-size:16px;line-height:2.1;\"><li>Working with agents (OpenAI)</li><li>Subagentes en Claude Code</li><li>Skills y plugins</li><li>Buenas prácticas de permisos</li></ul></div><ul style=\"font-size:16px;line-height:2.1;\"><li>Empieza con dos flujos.</li><li>Mide tiempo y consumo.</li><li>Documenta el plan.</li><li>Revisa cada entrega.</li></ul>"
+    },
+    {
+        "titulo": "Gracias por su atención",
+        "num": "32 / 32",
+        "body": "<div class=\"final\">\n            <h2>¿Dudas o comentarios?</h2>\n            <p>Participa en el foro del tema</p>\n            <p style=\"margin-top:30px;color:#3d5a96;font-weight:700;\">ICATHI 4.0 — Agentes de AI para la automatización del trabajo</p>\n        </div>"
+    }
+];
+
+let actual = 0;
+
+function renderSlide(i) {
+    const s = slides[i];
+    const c = document.getElementById('slides-container');
+    if (s.tipo === 'portada') {
+        c.innerHTML = '<div class="slide portada">' +
+            '<div class="portada-bg"></div>' +
+            '<div class="franja1"></div><div class="franja2"></div><div class="franja3"></div><div class="franja4"></div>' +
+            '<div class="portada-content">' +
+            '<div class="campus">CAMPUS VIRTUAL</div>' +
+            '<h1>Agentes de AI<span>para la automatización del trabajo</span></h1>' +
+            '<div class="tema-label">' + PORTADA.etiqueta + '</div>' +
+            '<div class="tema">' + PORTADA.tema + '</div>' +
+            '<div class="instituto">' + PORTADA.instituto + '</div>' +
+            '<div class="fecha">2026</div>' +
+            '</div></div>';
+    } else {
+        c.innerHTML = '<div class="slide">' +
+            '<div class="slide-header"><h2>' + s.titulo + '</h2><span class="num">' + s.num + '</span></div>' +
+            '<div class="slide-body">' + s.body + '</div>' +
+            '<div class="slide-footer"><span>ICATHI 4.0</span><span>' + s.num + '</span></div>' +
+            '</div>';
+    }
+    document.getElementById('counter').textContent = 'Diapositiva ' + (i + 1) + ' de ' + slides.length;
+    document.querySelectorAll('.nav-bar button').forEach((b, idx) => {
+        b.classList.toggle('activo', idx === i);
+    });
+}
+
+function sig() {
+    if (actual < slides.length - 1) { actual++; renderSlide(actual); }
+}
+function ant() {
+    if (actual > 0) { actual--; renderSlide(actual); }
+}
+
+// Nav bar
+document.addEventListener('DOMContentLoaded', () => {
+    const nav = document.createElement('div');
+    nav.className = 'nav-bar';
+    slides.forEach((_, i) => {
+        const b = document.createElement('button');
+        b.textContent = i + 1;
+        b.onclick = () => { actual = i; renderSlide(i); };
+        nav.appendChild(b);
+    });
+    document.body.insertBefore(nav, document.querySelector('.nav-controls'));
+    renderSlide(0);
+});
+</script>
+
+</body>
+</html>
